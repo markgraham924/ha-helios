@@ -1,7 +1,7 @@
 // Helios dashboard editor: an admin custom panel that edits the `helios` section of a storage-mode Lovelace dashboard,
 // one tab per paired clock (SPEC 0.16): each tab edits the dashboard that clock shows.
 // Vanilla ES module, no build step. The model, validation and forms live in helios-schema.js (node-testable).
-import * as S from './helios-schema.js?v=0.17.2';
+import * as S from './helios-schema.js?v=0.17.3';
 
 const STYLE = `
 :host{display:block;padding:16px;font-family:var(--paper-font-body1_-_font-family,Roboto,sans-serif);color:var(--primary-text-color);box-sizing:border-box}
@@ -298,8 +298,9 @@ class HeliosPanel extends HTMLElement {
       const hs = (this._hass && this._hass.states) || {};
       const readings = i.type === 'entities' ? S.entitiesPreview(i, hs) : null;
       const energy = i.type === 'energy' ? S.energyPreview(i, hs) : i.type === 'climate' ? S.climatePreview(i, hs) : i.type === 'alerts' ? S.alertsPreview(i, hs) : null;
-      const value = energy ? energy.value : i.type === 'spotify' ? 'Open' : i.type === 'assistant' ? (e && e.state !== 'idle' ? e.state : 'Talk') : i.type === 'clock' ? '12:00' : i.type === 'music' ? '—' : i.type === 'cover_group' ? 'A / B' : e ? `${e.state}${e.attributes.unit_of_measurement ? ' ' + e.attributes.unit_of_measurement : ''}` : (i.entity || '');
-      const body = readings ? `<div class="readings">${readings.rows.map((r) => `<div class="reading"><span class="label" title="${esc(r.title)}">${esc(r.title)}</span><span class="value" title="${esc(r.value)}">${esc(r.value)}</span></div>`).join('')}</div>` : `<div class="v">${esc(value)}</div>`;
+      const plan = i.type === 'predbat' ? S.predbatPreview(i, hs) : null;
+      const value = plan ? plan.value : energy ? energy.value : i.type === 'spotify' ? 'Open' : i.type === 'assistant' ? (e && e.state !== 'idle' ? e.state : 'Talk') : i.type === 'clock' ? '12:00' : i.type === 'music' ? '—' : i.type === 'cover_group' ? 'A / B' : e ? `${e.state}${e.attributes.unit_of_measurement ? ' ' + e.attributes.unit_of_measurement : ''}` : (i.entity || '');
+      const body = readings ? `<div class="readings">${readings.rows.map((r) => `<div class="reading"><span class="label" title="${esc(r.title)}">${esc(r.title)}</span><span class="value" title="${esc(r.value)}">${esc(r.value)}</span></div>`).join('')}</div>` : `<div class="v">${esc(value)}</div>${plan && plan.detail ? `<div class="t">${esc(plan.detail)}</div>` : ''}`;
       return `<div class="card ${i.id === st.sel ? 'on' : ''} ${bad.has(i.id) ? 'bad' : ''}" data-act="card" data-id="${esc(i.id)}" style="grid-column:${i.column} / span ${i.width};grid-row:${i.row} / span ${i.height}">
         <div class="t">${icon ? `<ha-icon icon="${esc(icon)}"></ha-icon>` : ''}<span>${esc(readings ? readings.title : energy ? energy.title : title)}</span></div>${body}${i.visible_when ? '<div class="t">conditional</div>' : ''}</div>`;
     });

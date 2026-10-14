@@ -15,6 +15,7 @@ export const TYPES = {
   entities: { label: 'Readings (1–3 entities)', fields: ['entries', 'icon'], entityDomain: null },
   music: { label: 'Music', fields: ['icon'], entityDomain: null, singleton: true },
   spotify: { label: 'Spotify', fields: ['icon'], entityDomain: null },
+  predbat: { label: 'Predbat activity', fields: ['entity', 'icon'], entityDomain: 'predbat' },
   assistant: { label: 'Assistant', fields: ['entity', 'icon'], entityDomain: 'sensor' },
   cover_group: { label: 'Two blinds', fields: ['covers', 'icon'], entityDomain: null },
   climate: { label: 'Thermostat', fields: ['entity', 'icon'], entityDomain: 'climate' },
@@ -86,6 +87,7 @@ const ITEM_ID_STEMS = { clock: 'zegar', weather: 'pogoda', tile: 'kafelek', enti
 export function emptyItem(type, cell, taken, entity) {
   const item = { id: slug(ITEM_ID_STEMS[type] || type, taken), type, column: cell.column, row: cell.row, width: 1, height: 1 };
   if (type === 'clock') { item.width = 2; item.height = 2; item.title = 'Home'; }
+  if (type === 'predbat') { item.title = 'Predbat'; item.icon = 'mdi:battery-sync'; }
   if (type === 'spotify') { item.title = 'Spotify'; item.icon = 'mdi:spotify'; }
   if (type === 'assistant') { item.title = 'Assistant'; item.icon = 'mdi:microphone'; }
   if (type === 'weather' || type === 'alerts') { item.width = 2; }
@@ -452,3 +454,14 @@ export function schemaFor(type, item, legacyVersion) {
   return s;
 }
 export const LABELS = { sources: 'Warnings', empty_card: `Card shown here when there are no alerts (YAML without id or position; types: ${EMPTY_TYPES.join(', ')}; empty = "No alerts")`, load_entity: 'Home consumption (sensor)', battery_entity: 'Battery % (optional)', id: 'Identifier', title: 'Title', column: 'Column', row: 'Row', width: 'Width', height: 'Height', entity: 'Entity', temperature_entity: 'Temperature sensor', forecast_entity: 'Forecast for tomorrow (sensor)', forecast_when_entity: 'Forecast mode: entity', forecast_when_state: 'Forecast mode: state', attribute: 'Attribute instead of state', off_entity: 'Lights to turn off (light)', icon: 'Icon', action: 'Tap action', confirm_enabled: 'Confirm before running', confirm_text: 'Confirmation text', cover1_entity: 'Blind A: entity', cover1_title: 'Blind A: name', cover2_entity: 'Blind B: entity', cover2_title: 'Blind B: name', visible_entity: 'Visible when entity', visible_state: 'has state' };
+
+// Use the active status detail; next-slot limits are deliberately not consulted.
+export function predbatPreview(item, states) {
+  const e = states[item.entity];
+  if (!e || ['unavailable', 'unknown'].includes(e.state)) return {value: 'No data', detail: ''};
+  let detail = String(e.attributes?.detail || '').trim();
+  if (/^target \d+(\.\d+)?%-\d+(\.\d+)?%$/.test(detail)) detail = detail.slice(7).replace('%-', '% → ');
+  if (e.state === 'Demand' && !detail) detail = 'Normal self-use';
+  const labels = {'Hold charging':'Charge hold','Hold exporting':'Export hold','Freeze charging':'Charge freeze','Freeze exporting':'Export freeze'};
+  return {value: labels[e.state] || e.state, detail};
+}

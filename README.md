@@ -188,3 +188,5 @@ Logs and exception texts are English; entity names come from translation keys,
 so they follow the language of each Home Assistant user.
 
 The Polish README is kept as [README.pl.md](README.pl.md).
+
+The English editor also supports a compact **Predbat activity** card. Pair editor 0.17.3 with clock 0.19.3 or newer. The card renders current status detail, including the active target percentage, rather than a next-slot charge/export limit.

@@ -20,5 +20,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/SychPL/ha-helios/issues",
   "requirements": [],
-  "version": "0.17.2"
+  "version": "0.17.3"
 }

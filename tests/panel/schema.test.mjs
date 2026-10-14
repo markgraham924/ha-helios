@@ -445,3 +445,14 @@ test('alerts: blink per source mirrors the clock (SPEC 0.20 pkt 4b)', () => {
   const wire = item('uwagi', 'alerts', 1, 1, 2, 1, { sources: [{ title: 'Garaż', entity: 'sensor.g', when: { entity: 'binary_sensor.g', state: 'on' }, blink: true }, { title: 'B', entity: 'sensor.b', when: { entity: 'binary_sensor.b', state: 'on' } }] });
   assert.deepEqual(S.fromForm('alerts', S.toForm(wire)), wire, 'blink kept when on, not added when off');
 });
+
+test('Predbat: active target details stay attached to their current status', () => {
+ const item = S.emptyItem('predbat', {column:1,row:1}, [], 'predbat.status');
+ assert.equal(S.validate({pages:[{id:'office',items:[item]}]}).length, 0);
+ const states = {'predbat.status': {state:'Charging',attributes:{detail:' target 23%-100%'}}};
+ assert.deepEqual(S.predbatPreview(item,states),{value:'Charging',detail:'23% → 100%'});
+ states['predbat.status'] = {state:'Exporting',attributes:{detail:'target 80%-67%'}};
+ assert.equal(S.predbatPreview(item,states).detail,'80% → 67%');
+ states['predbat.status'] = {state:'Demand',attributes:{}};
+ assert.equal(S.predbatPreview(item,states).detail,'Normal self-use');
+});
