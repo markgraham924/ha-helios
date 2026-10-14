@@ -4,6 +4,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as S from '../../custom_components/helios/panel/helios-schema.js';
 
+test('local shortcuts support Spotify and the assistant without arbitrary app targets', () => {
+  const spotify = S.emptyItem('spotify', {column:1,row:1}, []);
+  const assistant = S.emptyItem('assistant', {column:2,row:1}, [], 'sensor.voice');
+  assert.deepEqual(S.validate({pages:[{id:'office',items:[spotify,assistant]}]}), []);
+  spotify.package = 'other.app';
+  assert.ok(S.validate({pages:[{id:'office',items:[spotify,assistant]}]}).some(e => e.msg.includes('package')));
+});
+
 const item = (id, type, column, row, width = 1, height = 1, extra = {}) => ({ id, type, column, row, width, height, ...extra });
 const tile = (id, entity, column, row, extra = {}) => item(id, 'tile', column, row, 1, 1, { entity, ...extra });
 function example() {

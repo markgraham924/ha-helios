@@ -2,6 +2,11 @@
 
 ## English interface fork
 
+Editor 0.17.2 adds Spotify and Assistant card types for English Helios 0.19.2 or
+later. Spotify is a fixed native-app shortcut, and Assistant invokes the clock's
+existing voice pipeline. The editor can add, move and label both cards without
+adding scripts or changing the voice pipeline.
+
 This fork translates the dashboard editor, generated labels and validation
 messages into English. It preserves the integration domain, configuration schema
 and device protocol, and works with the English clock build at

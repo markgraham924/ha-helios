@@ -14,6 +14,8 @@ export const TYPES = {
   tile: { label: 'Tile (any entity)', fields: ['entity', 'icon', 'attribute', 'tap_action', 'confirmation'], entityDomain: '' },
   entities: { label: 'Readings (1–3 entities)', fields: ['entries', 'icon'], entityDomain: null },
   music: { label: 'Music', fields: ['icon'], entityDomain: null, singleton: true },
+  spotify: { label: 'Spotify', fields: ['icon'], entityDomain: null },
+  assistant: { label: 'Assistant', fields: ['entity', 'icon'], entityDomain: 'sensor' },
   cover_group: { label: 'Two blinds', fields: ['covers', 'icon'], entityDomain: null },
   climate: { label: 'Thermostat', fields: ['entity', 'icon'], entityDomain: 'climate' },
   energy: { label: 'Energy (solar, home, battery)', fields: ['entity', 'load_entity', 'battery_entity', 'icon'], entityDomain: 'sensor' },
@@ -82,8 +84,10 @@ export function clone(o) { return JSON.parse(JSON.stringify(o)); }
 // Stable ID stems are independent of translated display labels.
 const ITEM_ID_STEMS = { clock: 'zegar', weather: 'pogoda', tile: 'kafelek', entities: 'odczyty', music: 'muzyka', cover_group: 'dwie', climate: 'termostat', energy: 'energia', alerts: 'uwagi', entity: 'encja', light: 'swiatlo', cover: 'roleta', garage: 'brama' };
 export function emptyItem(type, cell, taken, entity) {
-  const item = { id: slug(ITEM_ID_STEMS[type], taken), type, column: cell.column, row: cell.row, width: 1, height: 1 };
+  const item = { id: slug(ITEM_ID_STEMS[type] || type, taken), type, column: cell.column, row: cell.row, width: 1, height: 1 };
   if (type === 'clock') { item.width = 2; item.height = 2; item.title = 'Home'; }
+  if (type === 'spotify') { item.title = 'Spotify'; item.icon = 'mdi:spotify'; }
+  if (type === 'assistant') { item.title = 'Assistant'; item.icon = 'mdi:microphone'; }
   if (type === 'weather' || type === 'alerts') { item.width = 2; }
   if (type === 'alerts') item.sources = [];
   if (type === 'entities') item.entries = [{ entity: entity || '' }];
