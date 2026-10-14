@@ -1,7 +1,7 @@
 // Helios dashboard editor: an admin custom panel that edits the `helios` section of a storage-mode Lovelace dashboard,
 // one tab per paired clock (SPEC 0.16): each tab edits the dashboard that clock shows.
 // Vanilla ES module, no build step. The model, validation and forms live in helios-schema.js (node-testable).
-import * as S from './helios-schema.js';
+import * as S from './helios-schema.js?v=0.17.1-en';
 
 const STYLE = `
 :host{display:block;padding:16px;font-family:var(--paper-font-body1_-_font-family,Roboto,sans-serif);color:var(--primary-text-color);box-sizing:border-box}
@@ -81,7 +81,7 @@ class HeliosPanel extends HTMLElement {
   async _loadClocks() {
     const st = this.state;
     try { st.clocks = (await this._hass.callWS({ type: 'helios/clocks' })).clocks; }
-    catch (err) { st.clocks = []; st.notice = 'Nie udało się pobrać listy zegarów: ' + (err.message || err.code || err); }
+    catch (err) { st.clocks = []; st.notice = 'Could not load the clock list: ' + (err.message || err.code || err); }
     const clock = st.clocks.find((c) => c.entry_id === st.clockId) || st.clocks[0];
     if (clock) { st.clockId = clock.entry_id; st.urlPath = clock.dashboard_path; }
   }
@@ -103,8 +103,8 @@ class HeliosPanel extends HTMLElement {
       clock.dashboard_path = urlPath; st.urlPath = urlPath;
       if (!st.dashboards.some((d) => d.url_path === urlPath)) st.dashboards.push({ url_path: urlPath, title: `Helios - ${clock.name}`, mode: 'storage' });
       await this._loadDashboard();
-      st.notice = st.model ? `${clock.name} ma teraz własny dashboard ${urlPath} - zegar przełączy się sam.` : `${clock.name} przełączony na ${urlPath}, ale nie udało się go wczytać - użyj Przeładuj.`;
-    } catch (err) { st.notice = 'Nie udało się utworzyć własnego dashboardu: ' + (err.message || err.code || err); }
+      st.notice = st.model ? `${clock.name} now has its own dashboard at ${urlPath} - the clock will switch automatically.` : `${clock.name} switched to ${urlPath}, but it could not be loaded - use Reload.`;
+    } catch (err) { st.notice = 'Could not create a separate dashboard: ' + (err.message || err.code || err); }
     finally { st.saving = false; this._render(); }
   }
   async _fetch(urlPath, strict = false) {
@@ -114,11 +114,11 @@ class HeliosPanel extends HTMLElement {
   async _loadDashboard() {
     const st = this.state;
     st.sel = null; st.dirty = false; st.stale = false; st.errors = [];
-    if (!st.dashboards.some((d) => d.url_path === st.urlPath)) { st.doc = null; st.model = null; st.notice = `Brak pulpitu ${st.urlPath} w trybie storage.`; this._render(); return; }
+    if (!st.dashboards.some((d) => d.url_path === st.urlPath)) { st.doc = null; st.model = null; st.notice = `No storage-mode dashboard at ${st.urlPath}.`; this._render(); return; }
     const urlPath = st.urlPath;
     let doc;
     try { doc = await this._fetch(urlPath); }
-    catch (err) { st.doc = null; st.model = null; st.notice = 'Nie udało się wczytać pulpitu: ' + (err.message || err.code || err); this._render(); return; }
+    catch (err) { st.doc = null; st.model = null; st.notice = 'Could not load the dashboard: ' + (err.message || err.code || err); this._render(); return; }
     if (st.urlPath !== urlPath) return; // the user moved on to another dashboard while this one loaded
     st.doc = doc;
     const parsed = S.fromLovelace(st.doc);
@@ -134,14 +134,14 @@ class HeliosPanel extends HTMLElement {
       await this._hass.callWS({ type: 'lovelace/dashboards/create', url_path: st.urlPath, title: 'Helios', icon: 'mdi:clock-digital', show_in_sidebar: true, require_admin: true, mode: 'storage' });
       st.dashboards = (await this._hass.callWS({ type: 'lovelace/dashboards/list' })).filter((d) => d.mode === 'storage');
       await this._loadDashboard();
-    } catch (err) { st.notice = 'Nie udało się utworzyć pulpitu: ' + (err.message || err.code || err); this._render(); }
+    } catch (err) { st.notice = 'Could not create the dashboard: ' + (err.message || err.code || err); this._render(); }
   }
   async _save() {
     const st = this.state;
     if (!st.model || st.saving) return;
     st.errors = S.validate(st.model);
     if (st.errors.length) { this._render(); return; }
-    if (st.legacyVersion != null && !window.confirm(`Dokument w wersji ${st.legacyVersion} zostanie zapisany w wersji 6. Wymaga Heliosa 0.12 - starszy zegar odrzuci go i zachowa poprzedni układ. Zapisać?`)) return;
+    if (st.legacyVersion != null && !window.confirm(`This version ${st.legacyVersion} document will be saved as version 6. Requires Helios 0.12 - older clocks will reject it and keep the previous layout. Save?`)) return;
     // the target and the document are pinned for the whole save: the selector is disabled meanwhile, and a switch that
     // slipped through could otherwise write this dashboard's whole config over another one
     const urlPath = st.urlPath, model = st.model;
@@ -151,15 +151,15 @@ class HeliosPanel extends HTMLElement {
       if (JSON.stringify(fresh.helios ?? null) !== st.baseline) {
         st.doc = fresh; const parsed = S.fromLovelace(fresh); st.model = parsed.model; st.legacyVersion = parsed.legacyVersion;
         st.baseline = JSON.stringify(fresh.helios ?? null); st.sel = null; st.dirty = false; st.stale = false; st.page = 0;
-        st.notice = 'Konfiguracja zmieniła się w międzyczasie - wczytano nową wersję, nanieś zmiany ponownie.';
+        st.notice = 'The configuration changed in the meantime - the new version has been loaded. Please apply your changes again.';
         return;
       }
       const next = structuredClone(fresh); next.helios = S.toHelios(model);
       await this._hass.callWS({ type: 'lovelace/config/save', url_path: urlPath, config: next });
       const verify = await this._fetch(urlPath);
       st.doc = verify; st.baseline = JSON.stringify(verify.helios ?? null); st.legacyVersion = null; st.dirty = false; st.stale = false;
-      st.notice = JSON.stringify(verify.helios) === JSON.stringify(next.helios) ? 'Zapisano - zegar odświeży się sam.' : 'Zapisano, ale odczyt różni się od zapisu - sprawdź edytor tekstowy.';
-    } catch (err) { st.notice = 'Zapis nie powiódł się: ' + (err.message || err.code || err); }
+      st.notice = JSON.stringify(verify.helios) === JSON.stringify(next.helios) ? 'Saved - the clock will refresh automatically.' : 'Saved, but the loaded result differs from what was saved - check the text editor.';
+    } catch (err) { st.notice = 'Save failed: ' + (err.message || err.code || err); }
     finally { st.saving = false; this._render(); }
   }
 
@@ -172,7 +172,7 @@ class HeliosPanel extends HTMLElement {
     const type = this._addType || 'tile';
     const item = S.emptyItem(type, cell, this._allIds());
     if (!S.fits(this._page().items, item)) { item.width = 1; item.height = 1; }
-    if (!S.fits(this._page().items, item)) { this.state.notice = `Element ${item.id} nakłada się na inny element`; this._render(); return; }
+    if (!S.fits(this._page().items, item)) { this.state.notice = `Item ${item.id} overlaps another item`; this._render(); return; }
     this._page().items.push(item); this.state.sel = item.id; this._touch();
   }
   /** A field edit: the model, the preview and the error list move, the form the user is typing in stays put. */
@@ -191,13 +191,13 @@ class HeliosPanel extends HTMLElement {
     if (tile) { this._commit(tile); this._renderSide(); } // a new type needs a new form
   }
   _addPage() {
-    const title = window.prompt('Nazwa strony', `Strona ${this.state.model.pages.length + 1}`);
+    const title = window.prompt('Page name', `Page ${this.state.model.pages.length + 1}`);
     if (title == null) return;
     const id = S.slug(title, this.state.model.pages.map((p) => p.id));
     this.state.model.pages.push({ id, title, items: [] }); this.state.page = this.state.model.pages.length - 1; this.state.sel = null; this._touch();
   }
   _renamePage() {
-    const p = this._page(), title = window.prompt('Nazwa strony', p.title || '');
+    const p = this._page(), title = window.prompt('Page name', p.title || '');
     if (title == null) return;
     if (title.trim()) p.title = title.trim(); else delete p.title;
     this._touch();
@@ -205,7 +205,7 @@ class HeliosPanel extends HTMLElement {
   _deletePage() {
     if (this.state.model.pages.length < 2) return;
     const p = this._page();
-    if (!window.confirm(`Usunąć stronę ${p.title || p.id} z ${p.items.length} elementami?`)) return;
+    if (!window.confirm(`Delete page ${p.title || p.id} with ${p.items.length} items?`)) return;
     this.state.model.pages.splice(this.state.page, 1); this.state.page = Math.max(0, this.state.page - 1); this.state.sel = null; this._touch();
   }
 
@@ -233,20 +233,20 @@ class HeliosPanel extends HTMLElement {
   _onClockChange(entryId) {
     const st = this.state, clock = st.clocks.find((c) => c.entry_id === entryId);
     if (st.saving || !clock || entryId === st.clockId) return;
-    if (st.dirty && !window.confirm('Porzucić niezapisane zmiany?')) return;
+    if (st.dirty && !window.confirm('Discard unsaved changes?')) return;
     st.clockId = entryId; st.urlPath = clock.dashboard_path; st.notice = null; this._loadDashboard();
   }
   _errorsHtml() {
     const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    return this.state.errors.length ? `<ul class="err">${this.state.errors.map((e) => `<li>${e.page != null ? `strona ${e.page + 1}${e.id ? ` / ${esc(e.id)}` : ''}: ` : ''}${esc(e.msg)}</li>`).join('')}</ul>` : '';
+    return this.state.errors.length ? `<ul class="err">${this.state.errors.map((e) => `<li>${e.page != null ? `page ${e.page + 1}${e.id ? ` / ${esc(e.id)}` : ''}: ` : ''}${esc(e.msg)}</li>`).join('')}</ul>` : '';
   }
   _renderStatus() {
     const st = this.state, root = this.shadowRoot, errors = root.getElementById('errors'), save = root.getElementById('save'), dirty = root.getElementById('dirty');
     if (errors) errors.innerHTML = this._errorsHtml();
     if (save) save.disabled = !st.model || st.saving || st.errors.length > 0 || (!st.dirty && st.legacyVersion == null);
-    if (dirty) dirty.textContent = st.dirty ? 'Niezapisane zmiany' : '';
+    if (dirty) dirty.textContent = st.dirty ? 'Unsaved changes' : '';
     const own = root.getElementById('own');
-    if (own) { own.disabled = st.saving || st.dirty; own.title = st.dirty ? 'Najpierw zapisz albo przeładuj' : 'Kopia bieżącego dokumentu tylko dla tego zegara'; }
+    if (own) { own.disabled = st.saving || st.dirty; own.title = st.dirty ? 'Save or reload first' : 'A copy of the current document for this clock only'; }
   }
 
   // --- rendering ---
@@ -254,26 +254,26 @@ class HeliosPanel extends HTMLElement {
     const st = this.state, root = this.shadowRoot;
     const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const known = st.dashboards.some((d) => d.url_path === st.urlPath), clock = this._clock(), sharing = this._sharing();
-    const clocks = `<div class="tabs clocks">${st.clocks.map((c) => `<button class="${c.entry_id === st.clockId ? 'on' : ''}" data-act="clock" data-id="${esc(c.entry_id)}" ${st.saving ? 'disabled' : ''} title="${c.online ? 'połączony' : 'rozłączony'}"><span class="dot ${c.online ? 'online' : ''}"></span>${esc(c.name)}${c.area ? ` · ${esc(c.area)}` : ''}</button>`).join('')}</div>`;
-    const where = clock ? `<div class="muted">Dashboard: ${esc(st.urlPath)}${sharing.length ? ` · wspólny z: ${sharing.map((c) => esc(c.name)).join(', ')}` : ''}</div>` : '';
+    const clocks = `<div class="tabs clocks">${st.clocks.map((c) => `<button class="${c.entry_id === st.clockId ? 'on' : ''}" data-act="clock" data-id="${esc(c.entry_id)}" ${st.saving ? 'disabled' : ''} title="${c.online ? 'connected' : 'disconnected'}"><span class="dot ${c.online ? 'online' : ''}"></span>${esc(c.name)}${c.area ? ` · ${esc(c.area)}` : ''}</button>`).join('')}</div>`;
+    const where = clock ? `<div class="muted">Dashboard: ${esc(st.urlPath)}${sharing.length ? ` · shared with: ${sharing.map((c) => esc(c.name)).join(', ')}` : ''}</div>` : '';
     const bar = `${clocks}<div class="bar">
-      ${known ? '' : '<button data-act="create">Utwórz pulpit</button>'}
-      ${clock && known && sharing.length ? `<button id="own" data-act="own" ${st.saving || st.dirty ? 'disabled' : ''} title="${st.dirty ? 'Najpierw zapisz albo przeładuj' : 'Kopia bieżącego dokumentu tylko dla tego zegara'}">Własny dashboard</button>` : ''}
-      <button data-act="reload" ${st.saving ? 'disabled' : ''}>Przeładuj</button>
-      <button class="primary" id="save" data-act="save" ${!st.model || st.saving || st.errors.length || (!st.dirty && st.legacyVersion == null) ? 'disabled' : ''}>${st.saving ? 'Zapisuję…' : 'Zapisz'}</button>
-      <span class="muted" id="dirty">${st.dirty ? 'Niezapisane zmiany' : ''}</span></div>${where}`;
+      ${known ? '' : '<button data-act="create">Create dashboard</button>'}
+      ${clock && known && sharing.length ? `<button id="own" data-act="own" ${st.saving || st.dirty ? 'disabled' : ''} title="${st.dirty ? 'Save or reload first' : 'A copy of the current document for this clock only'}">Separate dashboard</button>` : ''}
+      <button data-act="reload" ${st.saving ? 'disabled' : ''}>Reload</button>
+      <button class="primary" id="save" data-act="save" ${!st.model || st.saving || st.errors.length || (!st.dirty && st.legacyVersion == null) ? 'disabled' : ''}>${st.saving ? 'Saving…' : 'Save'}</button>
+      <span class="muted" id="dirty">${st.dirty ? 'Unsaved changes' : ''}</span></div>${where}`;
     const notices = [
-      st.stale ? '<div class="notice warn">Zmieniono poza edytorem - Przeładuj, aby zobaczyć aktualny układ.</div>' : '',
+      st.stale ? '<div class="notice warn">Changed outside the editor - Reload to see the current layout.</div>' : '',
       st.notice ? `<div class="notice ${st.legacyVersion != null ? 'warn' : ''}">${esc(st.notice)}</div>` : '',
-      st.formsReady === false ? '<div class="notice">Formularze HA niedostępne - używam prostych pól.</div>' : '',
-      st.clocks.length === 0 ? '<div class="notice">Brak sparowanych zegarów.</div>' : '',
+      st.formsReady === false ? '<div class="notice">Home Assistant forms unavailable - using basic fields.</div>' : '',
+      st.clocks.length === 0 ? '<div class="notice">No paired clocks.</div>' : '',
     ].join('');
     if (!st.model) { root.innerHTML = `<style>${STYLE}</style>${bar}${notices}`; this._wire(); return; }
     const tabs = `<div class="tabs">${st.model.pages.map((p, n) => `<button class="${n === st.page ? 'on' : ''}" data-act="page" data-n="${n}">${esc(p.title || p.id)}</button>`).join('')}
-      <button data-act="add-page" ${st.model.pages.length >= S.MAX_PAGES ? 'disabled' : ''}>+ strona</button><button data-act="rename-page">nazwa</button><button data-act="delete-page" ${st.model.pages.length < 2 ? 'disabled' : ''}>usuń stronę</button></div>`;
+      <button data-act="add-page" ${st.model.pages.length >= S.MAX_PAGES ? 'disabled' : ''}>+ page</button><button data-act="rename-page">rename</button><button data-act="delete-page" ${st.model.pages.length < 2 ? 'disabled' : ''}>delete page</button></div>`;
     root.innerHTML = `<style>${STYLE}</style>${bar}${notices}${tabs}
-      <div class="work"><div><div class="screen"><div class="top">HELIOS ${st.page === 0 ? '' : '· strona ' + (st.page + 1) + ' z ' + st.model.pages.length + ' (na zegarze: przesuń palcem)'}</div><div class="grid" id="grid"></div></div>
-      <div class="row"><label class="muted">Nowa karta: <select id="addtype">${Object.entries(S.TYPES).filter(([, d]) => !d.legacy).map(([k, d]) => `<option value="${k}" ${(this._addType || 'tile') === k ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}</select> - kliknij pustą komórkę</label></div><div id="errors">${this._errorsHtml()}</div></div>
+      <div class="work"><div><div class="screen"><div class="top">HELIOS ${st.page === 0 ? '' : '· page ' + (st.page + 1) +  ' of ' + st.model.pages.length + ' (swipe on the clock)'}</div><div class="grid" id="grid"></div></div>
+      <div class="row"><label class="muted">New card: <select id="addtype">${Object.entries(S.TYPES).filter(([, d]) => !d.legacy).map(([k, d]) => `<option value="${k}" ${(this._addType || 'tile') === k ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}</select> - click an empty cell</label></div><div id="errors">${this._errorsHtml()}</div></div>
       <div class="side" id="side"></div></div>`;
     this._wire();
     this._renderGrid();
@@ -290,7 +290,7 @@ class HeliosPanel extends HTMLElement {
     const bad = new Set(st.errors.filter((e) => e.page === st.page && e.id).map((e) => e.id));
     const used = S.occupied(page.items);
     const cells = [];
-    for (let r = 1; r <= S.ROWS; r++) for (let c = 1; c <= S.COLUMNS; c++) if (!used.has(`${c},${r}`)) cells.push(`<button class="cell" data-act="cell" data-c="${c}" data-r="${r}" style="grid-column:${c};grid-row:${r}" title="Dodaj kartę">+</button>`);
+    for (let r = 1; r <= S.ROWS; r++) for (let c = 1; c <= S.COLUMNS; c++) if (!used.has(`${c},${r}`)) cells.push(`<button class="cell" data-act="cell" data-c="${c}" data-r="${r}" style="grid-column:${c};grid-row:${r}" title="Add card">+</button>`);
     const cards = page.items.map((i) => {
       const def = S.TYPES[i.type], e = this._hass && i.entity ? this._hass.states[i.entity] : null;
       const title = i.title || (e && e.attributes.friendly_name) || (def ? def.label.split(' ')[0] : i.type);
@@ -301,7 +301,7 @@ class HeliosPanel extends HTMLElement {
       const value = energy ? energy.value : i.type === 'clock' ? '12:00' : i.type === 'music' ? '—' : i.type === 'cover_group' ? 'A / B' : e ? `${e.state}${e.attributes.unit_of_measurement ? ' ' + e.attributes.unit_of_measurement : ''}` : (i.entity || '');
       const body = readings ? `<div class="readings">${readings.rows.map((r) => `<div class="reading"><span class="label" title="${esc(r.title)}">${esc(r.title)}</span><span class="value" title="${esc(r.value)}">${esc(r.value)}</span></div>`).join('')}</div>` : `<div class="v">${esc(value)}</div>`;
       return `<div class="card ${i.id === st.sel ? 'on' : ''} ${bad.has(i.id) ? 'bad' : ''}" data-act="card" data-id="${esc(i.id)}" style="grid-column:${i.column} / span ${i.width};grid-row:${i.row} / span ${i.height}">
-        <div class="t">${icon ? `<ha-icon icon="${esc(icon)}"></ha-icon>` : ''}<span>${esc(readings ? readings.title : energy ? energy.title : title)}</span></div>${body}${i.visible_when ? '<div class="t">warunkowy</div>' : ''}</div>`;
+        <div class="t">${icon ? `<ha-icon icon="${esc(icon)}"></ha-icon>` : ''}<span>${esc(readings ? readings.title : energy ? energy.title : title)}</span></div>${body}${i.visible_when ? '<div class="t">conditional</div>' : ''}</div>`;
     });
     grid.innerHTML = cells.join('') + cards.join('');
   }
@@ -310,10 +310,10 @@ class HeliosPanel extends HTMLElement {
     if (!side) return;
     const st = this.state, item = st.sel ? this._page().items.find((i) => i.id === st.sel) : null;
     this._form = null;
-    if (!item) { side.innerHTML = '<h3>Karta</h3><p class="muted">Kliknij kartę, aby ją edytować, albo pustą komórkę, aby dodać nową.</p>'; return; }
+    if (!item) { side.innerHTML = '<h3>Card</h3><p class="muted">Click a card to edit it, or an empty cell to add a new one.</p>'; return; }
     const def = S.TYPES[item.type] || { label: item.type, fields: [] };
     side.innerHTML = `<h3>${def.label}</h3><div id="form"></div>
-      <div class="row">${def.legacy && S.toTile(item) ? '<button data-act="convert">Zamień na tile</button>' : ''}<button data-act="delete">Usuń</button><button data-act="close">Zamknij</button></div>`;
+      <div class="row">${def.legacy && S.toTile(item) ? '<button data-act="convert">Convert to tile</button>' : ''}<button data-act="delete">Delete</button><button data-act="close">Close</button></div>`;
     const host = side.querySelector('#form'), schema = S.schemaFor(item.type, item, st.legacyVersion), data = S.toForm(item);
     // The form outlives single edits, so every commit reads the item as it is now (renamed, converted), never the one it was built for.
     const commit = (value) => {
@@ -323,7 +323,7 @@ class HeliosPanel extends HTMLElement {
       if (domainChanged) value = { ...value, action: S.defaultIntent(S.domainOf(value.entity)) }; // the old intent may not exist on the new domain
       const next = S.fromForm(current.type, { ...data, ...value });
       const entriesSchemaChanged = current.type === 'entities' && JSON.stringify(S.schemaFor(current.type, current, st.legacyVersion)) !== JSON.stringify(S.schemaFor(next.type, next, st.legacyVersion));
-      if (next.id !== current.id && this._allIds().includes(next.id)) { st.notice = `Powtórzony id: ${next.id}`; this._render(); return; }
+      if (next.id !== current.id && this._allIds().includes(next.id)) { st.notice = `Duplicate ID: ${next.id}`; this._render(); return; }
       Object.assign(data, value);
       this._commit(next);
       if (domainChanged || entriesSchemaChanged) {

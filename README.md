@@ -1,5 +1,13 @@
 # Helios - Home Assistant integration for the Lenovo Smart Clock 2
 
+## English interface fork
+
+This fork translates the dashboard editor, generated labels and validation
+messages into English. It preserves the integration domain, configuration schema
+and device protocol, and works with the English clock build at
+[markgraham924/helios](https://github.com/markgraham924/helios/tree/english-ui).
+The existing Polish Home Assistant locale remains available in `translations/pl.json`.
+
 Home Assistant side of [Helios](https://github.com/SychPL/helios), an Android
 app that turns a Lenovo Smart Clock 2 into a Home Assistant dashboard and voice
 satellite. The clock connects to Home Assistant over its own WebSocket

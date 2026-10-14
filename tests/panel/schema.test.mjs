@@ -8,8 +8,8 @@ const item = (id, type, column, row, width = 1, height = 1, extra = {}) => ({ id
 const tile = (id, entity, column, row, extra = {}) => item(id, 'tile', column, row, 1, 1, { entity, ...extra });
 function example() {
   return { pages: [
-    { id: 'main', title: 'Dom', items: [
-      item('clock', 'clock', 1, 1, 2, 2, { title: 'Dom' }),
+    { id: 'main', title: 'Home', items: [
+      item('clock', 'clock', 1, 1, 2, 2, { title: 'Home' }),
       item('weather', 'weather', 3, 1, 2, 1, { entity: 'weather.forecast_dom' }),
       tile('salon', 'light.salon', 3, 2, { icon: 'mdi:ceiling-light', tap_action: { action: 'toggle' } }),
       tile('roleta', 'cover.roleta_salon', 4, 2),
@@ -19,7 +19,7 @@ function example() {
       item('music', 'music', 4, 3),
     ] },
     { id: 'sypialnia', title: 'Sypialnia', items: [
-      item('rolety', 'cover_group', 1, 1, 1, 1, { covers: [{ entity: 'cover.a', title: 'Roleta A' }, { entity: 'cover.b', title: 'Roleta B' }] }),
+      item('rolety', 'cover_group', 1, 1, 1, 1, { covers: [{ entity: 'cover.a', title: 'Blind A' }, { entity: 'cover.b', title: 'Blind B' }] }),
       tile('noc', 'scene.noc', 2, 1, { icon: 'mdi:weather-night', title: 'Dobranoc' }),
       item('garaz', 'garage', 1, 3, 4, 1, { entity: 'cover.brama', visible_when: { entity: 'binary_sensor.wieczor', state: 'on' } }),
       item('swiatla', 'entity', 3, 1, 1, 1, { entity: 'sensor.swiatla', icon: 'lightbulb', off_entity: 'light.grupa' }),
@@ -40,7 +40,7 @@ test('entities: displays three ordered readings from any HA entity domain', () =
 test('entities: entries are required and limited to one through three readings', () => {
   const doc = (extra) => ({ pages: [{ id: 'main', items: [item('odczyty', 'entities', 1, 1, 1, 1, extra)] }] });
   for (const entries of [undefined, null, {}, [], [{ entity: 'sensor.a' }, { entity: 'sensor.b' }, { entity: 'sensor.c' }, { entity: 'sensor.d' }]]) {
-    assert.deepEqual(msgs(doc(entries === undefined ? {} : { entries })), ['entities wymaga od 1 do 3 pozycji entries']);
+    assert.deepEqual(msgs(doc(entries === undefined ? {} : { entries })), ['entities requires 1 to 3 entries']);
   }
   assert.deepEqual(msgs(doc({ entries: [{ entity: 'sensor.a' }] })), []);
 });
@@ -48,20 +48,20 @@ test('entities: entries are required and limited to one through three readings',
 test('entities: each entry strictly validates its HA id and optional label', () => {
   const doc = (entry) => ({ pages: [{ id: 'main', items: [item('odczyty', 'entities', 1, 1, 1, 1, { entries: [entry] })] }] });
   for (const [entry, want] of [
-    [null, 'entries: pozycja musi być obiektem'],
-    [[], 'entries: pozycja musi być obiektem'],
-    ['sensor.a', 'entries: pozycja musi być obiektem'],
-    [{}, 'Wymagane pole entity'],
-    [{ entity: null }, 'Nieprawidłowe pole entity'],
-    [{ entity: '' }, 'Nieprawidłowe pole entity'],
-    [{ entity: 'sensor.' }, 'entries: nieprawidłowa encja sensor.'],
-    [{ entity: 'sensor.' + 'a'.repeat(122) }, 'Nieprawidłowe pole entity'],
-    [{ entity: 'sensor.a', title: null }, 'Nieprawidłowe pole title'],
-    [{ entity: 'sensor.a', title: ' ' }, 'Nieprawidłowe pole title'],
-    [{ entity: 'sensor.a', title: 'x'.repeat(41) }, 'Nieprawidłowe pole title'],
-    [{ entity: 'sensor.a', icon: 'mdi:eye' }, 'Nieznane pole entries: icon'],
-    [{ entity: 'sensor.a', attribute: 'humidity' }, 'Nieznane pole entries: attribute'],
-    [{ entity: 'sensor.a', unit: '%' }, 'Nieznane pole entries: unit'],
+    [null, 'entries: each entry must be an object'],
+    [[], 'entries: each entry must be an object'],
+    ['sensor.a', 'entries: each entry must be an object'],
+    [{}, 'Required field entity'],
+    [{ entity: null }, 'Invalid field entity'],
+    [{ entity: '' }, 'Invalid field entity'],
+    [{ entity: 'sensor.' }, 'entries: invalid entity sensor.'],
+    [{ entity: 'sensor.' + 'a'.repeat(122) }, 'Invalid field entity'],
+    [{ entity: 'sensor.a', title: null }, 'Invalid field title'],
+    [{ entity: 'sensor.a', title: ' ' }, 'Invalid field title'],
+    [{ entity: 'sensor.a', title: 'x'.repeat(41) }, 'Invalid field title'],
+    [{ entity: 'sensor.a', icon: 'mdi:eye' }, 'Unknown field entries: icon'],
+    [{ entity: 'sensor.a', attribute: 'humidity' }, 'Unknown field entries: attribute'],
+    [{ entity: 'sensor.a', unit: '%' }, 'Unknown field entries: unit'],
   ]) assert.deepEqual(msgs(doc(entry)), [want]);
   assert.deepEqual(msgs(doc({ entity: 'sensor.a', title: 'x'.repeat(40) })), []);
 });
@@ -76,7 +76,7 @@ test('entities: remains read-only and cannot replace an empty alerts card', () =
     sources: [{ title: 'A', entity: 'sensor.a', when: { entity: 'binary_sensor.a', state: 'on' } }],
     empty: { type: 'entities', entries: [{ entity: 'sensor.a' }] },
   })] }] };
-  assert.deepEqual(msgs(alerts), ['empty: dozwolone typy energy, climate, weather, clock, tile']);
+  assert.deepEqual(msgs(alerts), ['empty: allowed types energy, climate, weather, clock, tile']);
 });
 
 test('entities: editing and saving preserve order and malformed typed entries for validation', () => {
@@ -113,8 +113,8 @@ test('entities: preview keeps the row labels and formats numeric states with the
     'sensor.humidity': { state: '51', attributes: { unit_of_measurement: '%', friendly_name: 'Wilgotność' } },
     'sensor.co2': { state: '812', attributes: { unit_of_measurement: 'ppm' } },
   };
-  assert.deepEqual(S.entitiesPreview(i, states), { title: 'Odczyty', rows: [
-    { title: 'Temp.', value: '23,5 °C' }, { title: 'Wilgotność', value: '51 %' }, { title: 'Co2', value: '812 ppm' },
+  assert.deepEqual(S.entitiesPreview(i, states), { title: 'Readings', rows: [
+    { title: 'Temp.', value: '23.5 °C' }, { title: 'Wilgotność', value: '51 %' }, { title: 'Co2', value: '812 ppm' },
   ] });
   assert.deepEqual(S.entitiesPreview({ title: 'Status', entries: [{ entity: 'sensor.next_visit' }, { entity: 'input_number.target' }] }, {
     'sensor.next_visit': { state: 'jutro', attributes: {} }, 'input_number.target': { state: '-2.04', attributes: {} },
@@ -124,7 +124,7 @@ test('entities: preview keeps the row labels and formats numeric states with the
 test('entities: unavailable rows keep an em dash beside the remaining known values', () => {
   assert.deepEqual(S.entitiesPreview({ entries: [{ entity: 'sensor.missing' }, { entity: 'sensor.unknown' }, { entity: 'sensor.offline' }] }, {
     'sensor.unknown': { state: 'unknown', attributes: {} }, 'sensor.offline': { state: 'unavailable', attributes: { unit_of_measurement: '%' } },
-  }), { title: 'Odczyty', rows: [{ title: 'Missing', value: '—' }, { title: 'Unknown', value: '—' }, { title: 'Offline', value: '—' }] });
+  }), { title: 'Readings', rows: [{ title: 'Missing', value: '—' }, { title: 'Unknown', value: '—' }, { title: 'Offline', value: '—' }] });
   assert.deepEqual(S.entitiesPreview({ entries: [{ entity: 'sensor.missing' }, { entity: 'sensor.ok' }] }, {
     'sensor.ok': { state: '42.04', attributes: { unit_of_measurement: 'W' } },
   }).rows, [{ title: 'Missing', value: '—' }, { title: 'Ok', value: '42 W' }]);
@@ -133,12 +133,12 @@ test('entities: unavailable rows keep an em dash beside the remaining known valu
 
 test('entities: text readings use the clock translations for binary sensors, covers and switches', () => {
   for (const [entity, state, device_class, want] of [
-    ['cover.blind', 'opening', undefined, 'Otwieranie…'],
-    ['lock.front', 'jammed', undefined, 'Zablokowany'],
-    ['binary_sensor.window', 'on', 'window', 'Otwarte'],
-    ['binary_sensor.motion', 'off', 'motion', 'Brak'],
-    ['binary_sensor.dock', 'on', undefined, 'Tak'],
-    ['switch.socket', 'off', undefined, 'Wyłączone'],
+    ['cover.blind', 'opening', undefined, 'Opening…'],
+    ['lock.front', 'jammed', undefined, 'Jammed'],
+    ['binary_sensor.window', 'on', 'window', 'Open'],
+    ['binary_sensor.motion', 'off', 'motion', 'None'],
+    ['binary_sensor.dock', 'on', undefined, 'Yes'],
+    ['switch.socket', 'off', undefined, 'Off'],
     ['sensor.status', 'ready', undefined, 'ready'],
     ['sensor.status', 'toString', undefined, 'toString'],
   ]) {
@@ -148,7 +148,7 @@ test('entities: text readings use the clock translations for binary sensors, cov
 });
 
 test('entities: decimal half rounding matches the clock for positive and negative readings', () => {
-  for (const [state, want] of [['1.25', '1,3'], ['-1.25', '-1,3'], ['21.45', '21,5'], ['-0.04', '-0']]) {
+  for (const [state, want] of [['1.25', '1.3'], ['-1.25', '-1.3'], ['21.45', '21.5'], ['-0.04', '-0']]) {
     assert.equal(S.entitiesPreview({ entries: [{ entity: 'sensor.n' }] }, { 'sensor.n': { state, attributes: {} } }).rows[0].value, want);
   }
 });
@@ -165,66 +165,66 @@ test('legacy documents load as one page and say so', () => {
   const parsed = S.fromLovelace({ helios: v2, views: [] });
   assert.equal(parsed.legacyVersion, 2);
   assert.deepEqual(parsed.model.pages, [{ id: 'main', items: v2.items }]);
-  assert.match(parsed.notice, /wersji 2/);
+  assert.match(parsed.notice, /Version 2/);
   assert.equal(S.fromLovelace({}).legacyVersion, null);
   assert.deepEqual(S.fromLovelace({}).model.pages, [{ id: 'main', items: [] }]);
   assert.equal(S.fromLovelace({ helios: { version: 9 } }).model, null);
 });
 test('geometry and identity rules use the clock wording', () => {
-  rejects(withItem('garaz', { width: 5 }), 'Element garaz wychodzi poza siatkę');
-  rejects(withItem('roleta', { column: 3 }), 'Element roleta nakłada się na inny element');
-  rejects(withItem('roleta', { column: 0 }), 'Pole column musi być liczbą od 1 do 4');
-  rejects(withItem('roleta', { id: 'Zła nazwa' }), 'Nieprawidłowy id: Zła nazwa');
-  rejects(withItem('noc', { id: 'salon' }), 'Powtórzony id: salon');
+  rejects(withItem('garaz', { width: 5 }), 'Item garaz extends beyond the grid');
+  rejects(withItem('roleta', { column: 3 }), 'Item roleta overlaps another item');
+  rejects(withItem('roleta', { column: 0 }), 'Field column must be a number from 1 to 4');
+  rejects(withItem('roleta', { id: 'Zła nazwa' }), 'Invalid ID: Zła nazwa');
+  rejects(withItem('noc', { id: 'salon' }), 'Duplicate ID: salon');
   const many = example(); for (let i = 0; i < 9; i++) many.pages[1].items.push(tile('x' + i, 'light.x', 4, 1));
-  rejects(many, 'items: najwyżej 12 elementów');
+  rejects(many, 'items: at most 12 items');
   const pages = example(); for (let i = 0; i < 7; i++) pages.pages.push({ id: 'p' + i, items: [] });
-  rejects(pages, 'pages: najwyżej 8 stron');
-  rejects({ pages: [{ id: 'main', items: [] }, { id: 'main', items: [] }] }, 'Powtórzony id strony: main');
-  rejects({ pages: [{ id: 'Zła', items: [] }] }, 'Nieprawidłowy id strony: Zła');
+  rejects(pages, 'pages: at most 8 pages');
+  rejects({ pages: [{ id: 'main', items: [] }, { id: 'main', items: [] }] }, 'Duplicate page ID: main');
+  rejects({ pages: [{ id: 'Zła', items: [] }] }, 'Invalid page ID: Zła');
   const music = example(); music.pages[0].items.push(item('music2', 'music', 4, 2));
-  rejects(music, 'Dozwolony jest jeden kafelek music');
+  rejects(music, 'Only one tile is allowed for music');
   const twoPages = example(); twoPages.pages[1].items.push(item('music2', 'music', 4, 1));
   assert.deepEqual(S.validate(twoPages), []);
-  rejects(withItem('temp', { title: 'x'.repeat(41) }), 'Nieprawidłowe pole title');
-  assert.deepEqual(S.validate({ pages: [] }), [{ page: null, id: null, msg: 'Wymagane pole pages' }]);
+  rejects(withItem('temp', { title: 'x'.repeat(41) }), 'Invalid field title');
+  assert.deepEqual(S.validate({ pages: [] }), [{ page: null, id: null, msg: 'Required field pages' }]);
 });
 test('entities, domains and fields per type', () => {
-  rejects(withItem('weather', { entity: 'sensor.pogoda' }), 'Element weather wymaga encji z domeny weather');
-  rejects(withItem('garaz', { entity: 'binary_sensor.brama' }), 'Element garaz wymaga encji z domeny cover');
-  rejects(withItem('salon', { entity: 'light' }), 'Element salon wymaga encji z domeny tile');
-  rejects(withItem('clock', { icon: 'information' }), 'Pole niedozwolone dla typu clock: icon');
-  rejects(withItem('salon', { off_entity: 'light.x' }), 'Pole niedozwolone dla typu tile: off_entity');
-  rejects(withItem('salon', { icn: 'x' }), 'Pole niedozwolone dla typu tile: icn');
-  rejects(withItem('wilg', { attribute: 'Bad-Name' }), 'Nieprawidłowy attribute');
-  rejects(withItem('weather', { temperature_entity: 'number.t' }), 'temperature_entity wymaga encji sensor');
-  rejects(withItem('weather', { forecast_entity: 'sensor.x' }), 'weather: forecast_entity i forecast_when występują razem');
-  rejects(withItem('weather', { forecast_entity: 'sensor.x', forecast_when: { entity: 'binary_sensor.x', state: 'unavailable' } }), 'Brak danych nie może oznaczać trybu prognozy');
-  rejects(withItem('swiatla', { off_entity: 'switch.x' }), 'off_entity wymaga encji z domeny light');
-  rejects(withItem('rolety', { covers: [{ entity: 'cover.a', title: 'A' }] }), 'cover_group wymaga dokładnie dwóch pozycji covers');
-  rejects(withItem('rolety', { covers: [{ entity: 'cover.a', title: 'A' }, { entity: 'cover.a', title: 'B' }] }), 'covers: ta sama roleta dwa razy');
-  rejects(withItem('rolety', { covers: [{ entity: 'light.a', title: 'A' }, { entity: 'cover.b', title: 'B' }] }), 'covers wymaga encji z domeny cover');
-  rejects(withItem('garaz', { visible_when: { entity: 'binary_sensor.x', state: 'unknown' } }), 'Brak danych nie może oznaczać widoczności');
-  rejects(withItem('garaz', { visible_when: { entity: 'binary_sensor.x' } }), 'Wymagane pole state');
-  rejects(withItem('temp', { type: 'button' }), 'Nieobsługiwany typ elementu: button');
+  rejects(withItem('weather', { entity: 'sensor.pogoda' }), 'Item weather requires an entity in domain weather');
+  rejects(withItem('garaz', { entity: 'binary_sensor.brama' }), 'Item garaz requires an entity in domain cover');
+  rejects(withItem('salon', { entity: 'light' }), 'Item salon requires an entity in domain tile');
+  rejects(withItem('clock', { icon: 'information' }), 'Field not allowed for type clock: icon');
+  rejects(withItem('salon', { off_entity: 'light.x' }), 'Field not allowed for type tile: off_entity');
+  rejects(withItem('salon', { icn: 'x' }), 'Field not allowed for type tile: icn');
+  rejects(withItem('wilg', { attribute: 'Bad-Name' }), 'Invalid attribute');
+  rejects(withItem('weather', { temperature_entity: 'number.t' }), 'temperature_entity requires a sensor entity');
+  rejects(withItem('weather', { forecast_entity: 'sensor.x' }), 'weather: forecast_entity and forecast_when must appear together');
+  rejects(withItem('weather', { forecast_entity: 'sensor.x', forecast_when: { entity: 'binary_sensor.x', state: 'unavailable' } }), 'Missing data cannot indicate forecast mode');
+  rejects(withItem('swiatla', { off_entity: 'switch.x' }), 'off_entity requires an entity in domain light');
+  rejects(withItem('rolety', { covers: [{ entity: 'cover.a', title: 'A' }] }), 'cover_group requires exactly two covers entries');
+  rejects(withItem('rolety', { covers: [{ entity: 'cover.a', title: 'A' }, { entity: 'cover.a', title: 'B' }] }), 'covers: the same blind appears twice');
+  rejects(withItem('rolety', { covers: [{ entity: 'light.a', title: 'A' }, { entity: 'cover.b', title: 'B' }] }), 'covers requires an entity in domain cover');
+  rejects(withItem('garaz', { visible_when: { entity: 'binary_sensor.x', state: 'unknown' } }), 'Missing data cannot indicate visibility');
+  rejects(withItem('garaz', { visible_when: { entity: 'binary_sensor.x' } }), 'Required field state');
+  rejects(withItem('temp', { type: 'button' }), 'Unsupported item type: button');
 });
 test('intents follow the domain and locks always ask', () => {
-  rejects(withItem('temp', { tap_action: { action: 'toggle' } }), 'Encja sensor.temperatura_salon nie obsługuje akcji toggle');
-  rejects(withItem('salon', { tap_action: { action: 'open' } }), 'Encja light.salon nie obsługuje akcji open');
-  rejects(withItem('salon', { tap_action: { action: 'light.turn_on' } }), 'Encja light.salon nie obsługuje akcji light.turn_on');
-  rejects(withItem('salon', { tap_action: { action: 'toggle', data: {} } }), 'Nieznane pole tap_action');
-  rejects(withItem('zamek', { confirmation: { enabled: false } }), 'Akcja lock wymaga potwierdzenia');
+  rejects(withItem('temp', { tap_action: { action: 'toggle' } }), 'Entity sensor.temperatura_salon does not support action toggle');
+  rejects(withItem('salon', { tap_action: { action: 'open' } }), 'Entity light.salon does not support action open');
+  rejects(withItem('salon', { tap_action: { action: 'light.turn_on' } }), 'Entity light.salon does not support action light.turn_on');
+  rejects(withItem('salon', { tap_action: { action: 'toggle', data: {} } }), 'Unknown field tap_action');
+  rejects(withItem('zamek', { confirmation: { enabled: false } }), 'Action lock requires confirmation');
   assert.deepEqual(S.validate(withItem('temp', { confirmation: { enabled: true } })), []); // the clock accepts it on any tile
-  rejects(withItem('temp', { confirmation: { enabled: 'yes' } }), 'confirmation.enabled musi być boolean');
+  rejects(withItem('temp', { confirmation: { enabled: 'yes' } }), 'confirmation.enabled must be a boolean');
   assert.deepEqual(S.validate(withItem('temp', { tap_action: { action: 'none' } })), []);
-  rejects(withItem('garaz', { tap_action: { action: 'open' } }), 'Typ garage dopuszcza wyłącznie tap_action.action: close');
-  rejects(withItem('swiatla', { tap_action: { action: 'toggle' } }), 'Typ entity dopuszcza wyłącznie tap_action.action: lights_off');
+  rejects(withItem('garaz', { tap_action: { action: 'open' } }), 'Type garage allows only tap_action.action: close');
+  rejects(withItem('swiatla', { tap_action: { action: 'toggle' } }), 'Type entity allows only tap_action.action: lights_off');
   assert.deepEqual(S.allowedIntents('lock'), ['none', 'details', 'lock', 'unlock']);
   assert.equal(S.defaultIntent('cover'), 'controls'); assert.equal(S.defaultIntent('script'), 'activate'); assert.equal(S.defaultIntent('sensor'), 'details');
 });
 test('icons: mdi names or the six legacy words', () => {
-  rejects(withItem('salon', { icon: 'alert' }), 'Nieznana ikona: alert');
-  rejects(withItem('salon', { icon: 'mdi:Bad Name' }), 'Nieznana ikona: mdi:Bad Name');
+  rejects(withItem('salon', { icon: 'alert' }), 'Unknown icon: alert');
+  rejects(withItem('salon', { icon: 'mdi:Bad Name' }), 'Unknown icon: mdi:Bad Name');
   assert.deepEqual(S.validate(withItem('salon', { icon: 'lightbulb' })), []);
   assert.deepEqual(S.validate(withItem('music', { icon: 'music' })), []);
 });
@@ -280,7 +280,7 @@ test('new items and placement', () => {
 test('size limit', () => {
   const m = example(); m.pages[0].items[4].title = 'x'.repeat(40);
   for (let n = 0; n < 6; n++) m.pages.push({ id: 'p' + n, items: Array.from({ length: 12 }, (_, i) => tile('t' + n + '-' + i, 'sensor.' + 'a'.repeat(600), (i % 4) + 1, Math.floor(i / 4) + 1, { attribute: 'a'.repeat(64), visible_when: { entity: 'binary_sensor.' + 'b'.repeat(600), state: 'x'.repeat(60) } })) });
-  rejects(m, 'Sekcja helios przekracza 64 KiB');
+  rejects(m, 'The helios section exceeds 64 KiB');
 });
 
 test('dashboardPath: helios- plus slug, Polish letters folded, free suffix, valid Lovelace url_path (SPEC 0.16)', () => {
@@ -299,32 +299,32 @@ test('energy: PV, required house load, optional battery - the clock\'s rules and
   assert.deepEqual(msgs(energy()), []);
   assert.deepEqual(msgs(energy({ battery_entity: 'sensor.battery_soc' })), []);
   const noLoad = energy(); delete noLoad.pages[0].items[0].load_entity;
-  assert.deepEqual(msgs(noLoad), ['Wymagane pole load_entity']);
-  assert.deepEqual(msgs(energy({ load_entity: 'switch.house' })), ['load_entity wymaga encji sensor']);
-  assert.deepEqual(msgs(energy({ battery_entity: 'battery.x' })), ['battery_entity wymaga encji sensor']);
-  assert.deepEqual(msgs(energy({ entity: 'light.pv' })), ['Element energia wymaga encji z domeny sensor']);
-  assert.deepEqual(msgs(energy({ tap_action: { action: 'toggle' } })), ['Pole niedozwolone dla typu energy: tap_action', 'Pole niedozwolone dla typu energy: tap_action']);
+  assert.deepEqual(msgs(noLoad), ['Required field load_entity']);
+  assert.deepEqual(msgs(energy({ load_entity: 'switch.house' })), ['load_entity requires a sensor entity']);
+  assert.deepEqual(msgs(energy({ battery_entity: 'battery.x' })), ['battery_entity requires a sensor entity']);
+  assert.deepEqual(msgs(energy({ entity: 'light.pv' })), ['Item energia requires an entity in domain sensor']);
+  assert.deepEqual(msgs(energy({ tap_action: { action: 'toggle' } })), ['Field not allowed for type energy: tap_action', 'Field not allowed for type energy: tap_action']);
   // the form round-trips all three sensors and labels the PV one
   const form = S.toForm(energy({ battery_entity: 'sensor.battery_soc' }).pages[0].items[0]);
   assert.deepEqual(S.fromForm('energy', form), energy({ battery_entity: 'sensor.battery_soc' }).pages[0].items[0]);
   const schema = S.schemaFor('energy', form, null);
-  assert.equal(schema.find((f) => f.name === 'entity').label, 'Moc z PV (sensor)');
+  assert.equal(schema.find((f) => f.name === 'entity').label, 'Solar power (sensor)');
   assert.ok(schema.find((f) => f.name === 'load_entity').required && !schema.find((f) => f.name === 'battery_entity').required);
 });
 
 test('energy: field shapes as DashboardSpec.string() and the preview as the clock draws it (SPEC 0.17)', () => {
   const energy = (extra = {}) => ({ pages: [{ id: 'main', items: [item('energia', 'energy', 4, 3, 1, 1, { entity: 'sensor.pv', load_entity: 'sensor.load', ...extra })] }] });
-  assert.deepEqual(msgs(energy({ battery_entity: null })), ['Nieprawidłowe pole battery_entity']);
-  assert.deepEqual(msgs(energy({ load_entity: null })), ['Nieprawidłowe pole load_entity']);
-  assert.deepEqual(msgs(energy({ load_entity: ['sensor.load'] })), ['Nieprawidłowe pole load_entity']);
-  assert.deepEqual(msgs(energy({ load_entity: '   ' })), ['Nieprawidłowe pole load_entity']);
-  assert.deepEqual(msgs(energy({ load_entity: 'sensor.' + 'x'.repeat(122) })), ['Nieprawidłowe pole load_entity']);
+  assert.deepEqual(msgs(energy({ battery_entity: null })), ['Invalid field battery_entity']);
+  assert.deepEqual(msgs(energy({ load_entity: null })), ['Invalid field load_entity']);
+  assert.deepEqual(msgs(energy({ load_entity: ['sensor.load'] })), ['Invalid field load_entity']);
+  assert.deepEqual(msgs(energy({ load_entity: '   ' })), ['Invalid field load_entity']);
+  assert.deepEqual(msgs(energy({ load_entity: 'sensor.' + 'x'.repeat(122) })), ['Invalid field load_entity']);
   const st = (state, unit) => ({ state, attributes: unit ? { unit_of_measurement: unit } : {} });
   const states = { 'sensor.pv': st('1504', 'W'), 'sensor.load': st('698.4', 'W'), 'sensor.bat': st('68', '%') };
   const withBattery = { entity: 'sensor.pv', load_entity: 'sensor.load', battery_entity: 'sensor.bat' };
-  assert.deepEqual(S.energyPreview(withBattery, states), { title: '1504 / 698,4 W', value: '68 %' });
-  assert.deepEqual(S.energyPreview({ entity: 'sensor.pv', load_entity: 'sensor.load' }, states), { title: 'PV', value: '1504 / 698,4 W' });
-  assert.deepEqual(S.energyPreview(withBattery, { ...states, 'sensor.load': st('0.7', 'kW') }).title, '1504 W / 0,7 kW');
+  assert.deepEqual(S.energyPreview(withBattery, states), { title: '1504 / 698.4 W', value: '68 %' });
+  assert.deepEqual(S.energyPreview({ entity: 'sensor.pv', load_entity: 'sensor.load' }, states), { title: 'PV', value: '1504 / 698.4 W' });
+  assert.deepEqual(S.energyPreview(withBattery, { ...states, 'sensor.load': st('0.7', 'kW') }).title, '1504 W / 0.7 kW');
   assert.deepEqual(S.energyPreview(withBattery, { 'sensor.pv': st('1504', 'W'), 'sensor.bat': st('unavailable', '%') }), { title: '1504 W / —', value: '—' });
 });
 
@@ -332,14 +332,14 @@ test('climate: a climate entity only, icon optional, preview as the clock draws 
   const doc = (extra = {}) => ({ pages: [{ id: 'main', items: [item('t', 'climate', 3, 1, 1, 1, { entity: 'climate.salon', ...extra })] }] });
   assert.deepEqual(msgs(doc()), []);
   assert.deepEqual(msgs(doc({ icon: 'mdi:radiator' })), []);
-  assert.deepEqual(msgs(doc({ entity: 'sensor.x' })), ['Element t wymaga encji z domeny climate']);
-  assert.deepEqual(msgs(doc({ tap_action: { action: 'toggle' } })), ['Pole niedozwolone dla typu climate: tap_action', 'Pole niedozwolone dla typu climate: tap_action']);
+  assert.deepEqual(msgs(doc({ entity: 'sensor.x' })), ['Item t requires an entity in domain climate']);
+  assert.deepEqual(msgs(doc({ tap_action: { action: 'toggle' } })), ['Field not allowed for type climate: tap_action', 'Field not allowed for type climate: tap_action']);
   const st = (state, attributes) => ({ 'climate.salon': { state, attributes } });
   const i = { entity: 'climate.salon' };
-  assert.deepEqual(S.climatePreview(i, st('heat', { current_temperature: 23, temperature: 20.5, friendly_name: 'Salon' })), { title: 'Salon', value: '23,0°', detail: 'Zadana 20,5°' });
-  assert.deepEqual(S.climatePreview(i, st('off', { current_temperature: 22, temperature: 24 })).detail, 'Wyłączony');
+  assert.deepEqual(S.climatePreview(i, st('heat', { current_temperature: 23, temperature: 20.5, friendly_name: 'Salon' })), { title: 'Salon', value: '23.0°', detail: 'Target 20.5°' });
+  assert.deepEqual(S.climatePreview(i, st('off', { current_temperature: 22, temperature: 24 })).detail, 'Off');
   assert.deepEqual(S.climatePreview(i, st('heat', { temperature: 21 })).value, '—');
-  assert.deepEqual(S.climatePreview(i, st('unavailable', {})), { title: 'climate.salon', value: '—', detail: 'Brak połączenia' });
+  assert.deepEqual(S.climatePreview(i, st('unavailable', {})), { title: 'climate.salon', value: '—', detail: 'Disconnected' });
   const f = S.toForm(doc().pages[0].items[0]);
   assert.deepEqual(S.fromForm('climate', f), doc().pages[0].items[0]);
 });
@@ -350,20 +350,20 @@ test('alerts: sources, sizes and the stand-in card - the clock\'s rules and word
   assert.deepEqual(msgs(alerts()), []);
   assert.deepEqual(msgs(alerts({}, 1, 1)), []);
   assert.deepEqual(msgs(alerts({}, 1, 2)), []);
-  assert.deepEqual(msgs(alerts({}, 2, 2)), ['Kafelek alerts ma rozmiar 1x1, 1x2 albo 2x1']);
-  assert.deepEqual(msgs(alerts({ sources: [] })), ['alerts wymaga od 1 do 12 pozycji sources']);
-  assert.deepEqual(msgs(alerts({ sources: [src('a'), src('a')] })), ['sources: powtórzony warunek binary_sensor.a_pokaz = on']);
-  assert.deepEqual(msgs(alerts({ sources: [src('a', { off_entity: 'switch.x' })] })), ['off_entity wymaga encji z domeny light']);
-  assert.deepEqual(msgs(alerts({ sources: [src('a', { show_since: 'tak' })] })), ['show_since musi być boolean']);
-  assert.deepEqual(msgs(alerts({ sources: [src('a', { kolor: 'red' })] })), ['Nieznane pole sources: kolor']);
-  assert.deepEqual(msgs(alerts({ sources: [src('a', { when: { entity: 'binary_sensor.a', state: 'unavailable' } })] })), ['Brak danych nie może oznaczać ostrzeżenia']);
+  assert.deepEqual(msgs(alerts({}, 2, 2)), ['The alerts tile must be 1x1, 1x2 or 2x1']);
+  assert.deepEqual(msgs(alerts({ sources: [] })), ['alerts requires 1 to 12 sources entries']);
+  assert.deepEqual(msgs(alerts({ sources: [src('a'), src('a')] })), ['sources: duplicate condition binary_sensor.a_pokaz = on']);
+  assert.deepEqual(msgs(alerts({ sources: [src('a', { off_entity: 'switch.x' })] })), ['off_entity requires an entity in domain light']);
+  assert.deepEqual(msgs(alerts({ sources: [src('a', { show_since: 'tak' })] })), ['show_since must be a boolean']);
+  assert.deepEqual(msgs(alerts({ sources: [src('a', { kolor: 'red' })] })), ['Unknown field sources: kolor']);
+  assert.deepEqual(msgs(alerts({ sources: [src('a', { when: { entity: 'binary_sensor.a', state: 'unavailable' } })] })), ['Missing data cannot indicate an alert']);
   const noWhen = src('a'); delete noWhen.when;
-  assert.deepEqual(msgs(alerts({ sources: [noWhen] })), ['when musi być obiektem']);
+  assert.deepEqual(msgs(alerts({ sources: [noWhen] })), ['when must be an object']);
   assert.deepEqual(msgs(alerts({ empty: { type: 'energy', entity: 'sensor.pv', load_entity: 'sensor.dom' } })), []);
-  assert.deepEqual(msgs(alerts({ empty: { type: 'music' } })), ['empty: dozwolone typy energy, climate, weather, clock, tile']);
-  assert.deepEqual(msgs(alerts({ empty: { type: 'clock', column: 3 } })), ['empty: pole column bierze się z kafelka alerts']);
-  assert.deepEqual(msgs(alerts({ empty: { type: 'energy', entity: 'sensor.pv' } })), ['Wymagane pole load_entity'], 'the stand-in is checked as a card of its own');
-  assert.deepEqual(msgs(alerts({ entity: 'sensor.x' })), ['Pole niedozwolone dla typu alerts: entity', 'Pole niedozwolone dla typu alerts: entity']);
+  assert.deepEqual(msgs(alerts({ empty: { type: 'music' } })), ['empty: allowed types energy, climate, weather, clock, tile']);
+  assert.deepEqual(msgs(alerts({ empty: { type: 'clock', column: 3 } })), ['empty: field column is inherited from the alerts tile']);
+  assert.deepEqual(msgs(alerts({ empty: { type: 'energy', entity: 'sensor.pv' } })), ['Required field load_entity'], 'the stand-in is checked as a card of its own');
+  assert.deepEqual(msgs(alerts({ entity: 'sensor.x' })), ['Field not allowed for type alerts: entity', 'Field not allowed for type alerts: entity']);
   // the form edits sources flat and gives the wire shape back unchanged
   const wire = alerts({ empty: { type: 'clock' } }).pages[0].items[0];
   wire.sources[0].show_since = false;
@@ -372,23 +372,23 @@ test('alerts: sources, sizes and the stand-in card - the clock\'s rules and word
   // preview: the clock's three states
   const now = '2026-09-25T10:00:00+00:00', older = '2026-09-25T08:00:00+00:00';
   const i = alerts().pages[0].items[0];
-  assert.equal(S.alertsPreview(i, {}).value, '- · Brak danych');
-  assert.equal(S.alertsPreview(i, { 'binary_sensor.garaz_pokaz': { state: 'off' }, 'binary_sensor.swiatla_pokaz': { state: 'off' } }).value, '0 · Brak uwag');
+  assert.equal(S.alertsPreview(i, {}).value, '- · No data');
+  assert.equal(S.alertsPreview(i, { 'binary_sensor.garaz_pokaz': { state: 'off' }, 'binary_sensor.swiatla_pokaz': { state: 'off' } }).value, '0 · No alerts');
   assert.equal(S.alertsPreview(i, { 'binary_sensor.garaz_pokaz': { state: 'on', last_changed: older }, 'binary_sensor.swiatla_pokaz': { state: 'on', last_changed: now } }).value, '2 · swiatla +1');
 });
 
 test('alerts: source fields mirror the clock exactly (types, nulls, lengths, aliases, untrimmed state)', () => {
   const one = (s) => ({ pages: [{ id: 'main', items: [item('uwagi', 'alerts', 1, 1, 2, 1, { sources: [{ title: 'A', entity: 'sensor.a', when: { entity: 'binary_sensor.a', state: 'on' }, ...s }] })] }] });
   assert.deepEqual(msgs(one({ icon: 'lightbulb' })), [], 'a legacy name is an alias on the clock');
-  assert.deepEqual(msgs(one({ off_entity: null })), ['Nieprawidłowe pole off_entity']);
-  assert.deepEqual(msgs(one({ off_entity: ['light.a'] })), ['Nieprawidłowe pole off_entity']);
-  assert.deepEqual(msgs(one({ show_since: null })), ['show_since musi być boolean']);
-  assert.deepEqual(msgs(one({ when: { entity: 'binary_sensor.a', state: 'on', extra: 1 } })), ['Nieznane pole when: extra']);
-  assert.deepEqual(msgs(one({ when: { entity: 'binary_sensor.a', state: 'x'.repeat(65) } })), ['Nieprawidłowe pole state']);
+  assert.deepEqual(msgs(one({ off_entity: null })), ['Invalid field off_entity']);
+  assert.deepEqual(msgs(one({ off_entity: ['light.a'] })), ['Invalid field off_entity']);
+  assert.deepEqual(msgs(one({ show_since: null })), ['show_since must be a boolean']);
+  assert.deepEqual(msgs(one({ when: { entity: 'binary_sensor.a', state: 'on', extra: 1 } })), ['Unknown field when: extra']);
+  assert.deepEqual(msgs(one({ when: { entity: 'binary_sensor.a', state: 'x'.repeat(65) } })), ['Invalid field state']);
   const f = S.toForm(one({ when: { entity: 'binary_sensor.a', state: ' on ' } }).pages[0].items[0]);
   assert.equal(S.fromForm('alerts', f).sources[0].when.state, ' on ');
   const i = one({}).pages[0].items[0]; i.sources.push({ title: 'B', entity: 'sensor.b', when: { entity: 'binary_sensor.b', state: 'on' } });
-  assert.equal(S.alertsPreview(i, { 'binary_sensor.a': { state: 'on' } }).value, '1 · A · Brak danych: 1');
+  assert.equal(S.alertsPreview(i, { 'binary_sensor.a': { state: 'on' } }).value, '1 · A · No data: 1');
 });
 
 test('alerts: broken input stays visible to validation and never breaks the form', () => {
@@ -398,34 +398,34 @@ test('alerts: broken input stays visible to validation and never breaks the form
   const f = S.toForm(card({})); f.empty_card = 'oops';
   const back = S.fromForm('alerts', f);
   assert.equal(back.empty, 'oops');
-  assert.deepEqual(msgs({ pages: [{ id: 'main', items: [back] }] }), ['empty musi być obiektem']);
+  assert.deepEqual(msgs({ pages: [{ id: 'main', items: [back] }] }), ['empty must be an object']);
   const typed = S.fromForm('alerts', { ...S.toForm(card({})), sources: [null] });
   assert.deepEqual(typed.sources, [null]);
-  assert.deepEqual(msgs({ pages: [{ id: 'main', items: [typed] }] }), ['sources: pozycja musi być obiektem']);
+  assert.deepEqual(msgs({ pages: [{ id: 'main', items: [typed] }] }), ['sources: each entry must be an object']);
 });
 
 test('an object field present as null is refused, as on the clock (also inside a stand-in card)', () => {
   const m = { pages: [{ id: 'main', items: [tile('t', 'light.a', 1, 1, { tap_action: null })] }] };
-  assert.deepEqual(msgs(m), ['tap_action musi być obiektem']);
+  assert.deepEqual(msgs(m), ['tap_action must be an object']);
   const a = { pages: [{ id: 'main', items: [item('uwagi', 'alerts', 1, 1, 2, 1, { sources: [{ title: 'A', entity: 'sensor.a', when: { entity: 'binary_sensor.a', state: 'on' } }], empty: { type: 'tile', entity: 'sensor.a', tap_action: null } })] }] };
-  assert.deepEqual(msgs(a), ['tap_action musi być obiektem']);
+  assert.deepEqual(msgs(a), ['tap_action must be an object']);
 });
 
 test('wrong types in object fields, a null title and unknown confirmation keys are refused like on the clock', () => {
   const one = (extra) => msgs({ pages: [{ id: 'main', items: [tile('t', 'light.a', 1, 1, extra)] }] });
-  assert.deepEqual(one({ tap_action: false }), ['tap_action musi być obiektem']);
-  assert.deepEqual(one({ title: null }), ['Nieprawidłowe pole title']);
-  assert.deepEqual(one({ confirmation: { enabled: true, unexpected: 1 } }), ['Nieznane pole confirmation: unexpected']);
+  assert.deepEqual(one({ tap_action: false }), ['tap_action must be an object']);
+  assert.deepEqual(one({ title: null }), ['Invalid field title']);
+  assert.deepEqual(one({ confirmation: { enabled: true, unexpected: 1 } }), ['Unknown field confirmation: unexpected']);
 });
 
 test('alerts: a "done" button per source mirrors the clock (SPEC 0.20 pkt 4a)', () => {
   const one = (s) => msgs({ pages: [{ id: 'main', items: [item('uwagi', 'alerts', 1, 1, 2, 1, { sources: [{ title: 'Śmieci jutro', entity: 'sensor.s', when: { entity: 'binary_sensor.s', state: 'on' }, ...s }] })] }] });
   assert.deepEqual(one({ done_entity: 'script.helios_smieci_wyniesione', done_label: 'Wyniesione' }), []);
   assert.deepEqual(one({ done_entity: 'input_button.x' }), []);
-  assert.deepEqual(one({ done_entity: 'light.a' }), ['done_entity wymaga encji script, input_boolean, input_button albo button']);
-  assert.deepEqual(one({ done_label: 'Gotowe' }), ['done_label wymaga done_entity']);
-  assert.deepEqual(one({ done_entity: 'script.a', done_label: 'Bardzo dluga nazwa' }), ['Nieprawidłowe pole done_label']);
-  assert.deepEqual(one({ done_entity: 'script.a', off_entity: 'light.a' }), ['sources: off_entity i done_entity wykluczają się']);
+  assert.deepEqual(one({ done_entity: 'light.a' }), ['done_entity requires a script, input_boolean, input_button or button entity']);
+  assert.deepEqual(one({ done_label: 'Gotowe' }), ['done_label requires done_entity']);
+  assert.deepEqual(one({ done_entity: 'script.a', done_label: 'Bardzo dluga nazwa' }), ['Invalid field done_label']);
+  assert.deepEqual(one({ done_entity: 'script.a', off_entity: 'light.a' }), ['sources: off_entity and done_entity are mutually exclusive']);
   const wire = item('uwagi', 'alerts', 1, 1, 2, 1, { sources: [{ title: 'Śmieci jutro', entity: 'sensor.s', when: { entity: 'binary_sensor.s', state: 'on' }, done_entity: 'script.w', done_label: 'Wyniesione' }] });
   assert.deepEqual(S.fromForm('alerts', S.toForm(wire)), wire);
 });
@@ -433,7 +433,7 @@ test('alerts: a "done" button per source mirrors the clock (SPEC 0.20 pkt 4a)', 
 test('alerts: blink per source mirrors the clock (SPEC 0.20 pkt 4b)', () => {
   const one = (s) => msgs({ pages: [{ id: 'main', items: [item('uwagi', 'alerts', 1, 1, 2, 1, { sources: [{ title: 'Garaż', entity: 'sensor.g', when: { entity: 'binary_sensor.g', state: 'on' }, ...s }] })] }] });
   assert.deepEqual(one({ blink: true }), []);
-  assert.deepEqual(one({ blink: 'tak' }), ['blink musi być boolean']);
+  assert.deepEqual(one({ blink: 'tak' }), ['blink must be a boolean']);
   const wire = item('uwagi', 'alerts', 1, 1, 2, 1, { sources: [{ title: 'Garaż', entity: 'sensor.g', when: { entity: 'binary_sensor.g', state: 'on' }, blink: true }, { title: 'B', entity: 'sensor.b', when: { entity: 'binary_sensor.b', state: 'on' } }] });
   assert.deepEqual(S.fromForm('alerts', S.toForm(wire)), wire, 'blink kept when on, not added when off');
 });

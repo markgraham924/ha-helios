@@ -6,7 +6,7 @@
       }
     },
     "progress": {
-      "pair": "On the clock, press and hold HELIOS, choose \"Paruj z HA (kod)\" and enter the code:\n\n**{code}**\n\nThe code is valid for {minutes} min."
+      "pair": "On the clock, press and hold HELIOS, choose \"Pair with HA (code)\" and enter the code:\n\n**{code}**\n\nThe code is valid for {minutes} min."
     },
     "abort": {
       "timeout": "The clock did not connect while the code was valid.",
